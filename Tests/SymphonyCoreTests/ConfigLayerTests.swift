@@ -95,4 +95,58 @@ final class ConfigLayerTests: XCTestCase {
         XCTAssertFalse(configLayer.workspaceRoot.hasPrefix("~"))
         XCTAssertEqual(configLayer.agentCommand, "custom-agent")
     }
+
+    func test_configLayer_whenWorkflowUsesNestedSections_returnsRuntimeValues() {
+        // Arrange
+        let definition = WorkflowDefinition(
+            config: [
+                "tracker": [
+                    "kind": "linear",
+                    "project_slug": "daniel-bernal",
+                    "api_key": "$LINEAR_API_KEY",
+                ],
+                "polling": [
+                    "interval_ms": 45_000,
+                ],
+                "workspace": [
+                    "root": "~/symphony_workspaces",
+                ],
+                "hooks": [
+                    "after_create": "git clone repo .",
+                    "before_run": "echo before-run",
+                    "after_run": "echo after-run",
+                    "before_remove": "echo before-remove",
+                ],
+                "agent": [
+                    "max_concurrent_agents": 3,
+                ],
+                "codex": [
+                    "command": "codex app-server",
+                    "turn_timeout_ms": 9_000,
+                    "stall_timeout_ms": 8_000,
+                ],
+            ],
+            prompt_template: "Prompt"
+        )
+        setenv("LINEAR_API_KEY", "linear-test-key", 1)
+        defer { unsetenv("LINEAR_API_KEY") }
+
+        // Act
+        let configLayer = ConfigLayer(definition: definition)
+
+        // Assert
+        XCTAssertEqual(configLayer.trackerKind, "linear")
+        XCTAssertEqual(configLayer.projectSlug, "daniel-bernal")
+        XCTAssertEqual(configLayer.apiKey, "linear-test-key")
+        XCTAssertEqual(configLayer.pollIntervalMs, 45_000)
+        XCTAssertTrue(configLayer.workspaceRoot.hasSuffix("/symphony_workspaces"))
+        XCTAssertEqual(configLayer.afterCreateHook, "git clone repo .")
+        XCTAssertEqual(configLayer.beforeRunHook, "echo before-run")
+        XCTAssertEqual(configLayer.afterRunHook, "echo after-run")
+        XCTAssertEqual(configLayer.beforeRemoveHook, "echo before-remove")
+        XCTAssertEqual(configLayer.maxConcurrentAgents, 3)
+        XCTAssertEqual(configLayer.agentCommand, "codex app-server")
+        XCTAssertEqual(configLayer.turnTimeoutMs, 9_000)
+        XCTAssertEqual(configLayer.stallTimeoutMs, 8_000)
+    }
 }

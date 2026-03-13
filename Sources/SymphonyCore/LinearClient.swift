@@ -19,7 +19,7 @@ public enum LinearClientError: Error, Equatable {
     }
 }
 
-public struct LinearClient {
+public struct LinearClient: LinearClienting {
     private let apiKey: String
     private let endpoint: URL
     private let session: URLSession
