@@ -18,6 +18,9 @@ public struct WorkflowConfig {
         stringArrayValue(for: "terminalStates", default: ["closed", "cancelled", "canceled", "duplicate", "done"])
     }
     public var maxConcurrentAgents: Int { intValue(for: "maxConcurrentAgents", default: 10) }
+    public var maxConcurrentAgentsByState: [String: Int] {
+        dictionaryOfIntsValue(for: "maxConcurrentAgentsByState")
+    }
     public var maxRetryBackoffMs: Int { intValue(for: "maxRetryBackoffMs", default: 300_000) }
     public var agentCommand: String { stringValue(for: "agentCommand", default: "codex app-server") }
     public var turnTimeoutMs: Int { intValue(for: "turnTimeoutMs", default: 3_600_000) }
@@ -85,6 +88,39 @@ public struct WorkflowConfig {
         }
 
         return value
+    }
+
+    private func dictionaryOfIntsValue(for key: String) -> [String: Int] {
+        guard let resolvedValue = resolveValue(for: key) else {
+            return [:]
+        }
+
+        guard let values = resolvedValue as? [String: Any] else {
+            return [:]
+        }
+
+        var normalizedValues: [String: Int] = [:]
+        for (state, rawValue) in values {
+            guard let parsedValue = int(from: rawValue) else {
+                continue
+            }
+
+            normalizedValues[state.lowercased()] = parsedValue
+        }
+
+        return normalizedValues
+    }
+
+    private func int(from value: Any) -> Int? {
+        if let value = value as? Int {
+            return value
+        }
+
+        if let value = value as? String {
+            return Int(value)
+        }
+
+        return nil
     }
 
     private func expandPath(_ path: String) -> String {
